@@ -6,9 +6,10 @@
         <label for="title">Smoothie Title:</label>
         <input type="text" name="title" v-model="title" placeholder="Type Smoothie Title Here...">
       </div>
-      <div v-for="(ing, index) in ingredients" :key=index>
+      <div class="ingredient-list" v-for="(ing, index) in ingredients" :key=index>
         <label for="ingredient">Ingredient:</label>
         <input type="text" name="ingredient" v-model="ingredients[index]">
+        <i class="material-icons delete" @click="deleteIng(ing)">delete</i>
       </div>
       <div class="field add-ingredient">
         <label for="add-ingredient">Add an ingredient</label>
@@ -23,6 +24,8 @@
   </div>
 </template>
 <script>
+import slugify from 'slugify';
+import db from '@/firebase/init';
 export default {
   name: 'AddSmoothie',
   data() {
@@ -30,13 +33,34 @@ export default {
       title: null,
       ingredients: [],
       another: null,
-      feedback: null
+      feedback: null,
+      slug: null
     }
   },
   methods: {
     AddSmoothie() {
-      console.log(this.title);
-      console.log(this.ingredients)
+      if(this.title){
+        this.feedback = null;
+        // create slug
+        this.slug = slugify(this.title, {
+          replacement: '-',
+          remove: /[$*_+~.()'"!\-:@]/g,
+          lower: true
+        })
+        db.collection("smoothies").add({
+          title: this.title,
+          ingredients: this.ingredients,
+          slug: this.slug
+        }).then( () => {
+          this.$router.push({name: 'Index'});
+        })
+          .catch( error => {
+            console.log('error: ', error);
+          })
+
+      } else {
+        this.feedback = "You must enter a smoothie title";
+      }
     },
     addIng(){
       if(this.another) {
@@ -47,6 +71,12 @@ export default {
         this.feedback = 'You must enter a value to add an ingredient';
       }
       console.log(this.ingredients);
+    },
+    deleteIng(ing) {
+      this.ingredients = this.ingredients.filter(ingredient => {
+        return ingredient !== ing;
+      })
+      console.log('clicked')
     }
   }
 }
@@ -63,5 +93,16 @@ export default {
   }
   .field {
     margin: 20px auto;
+  }
+  .ingredient-list {
+    position: relative;
+  }
+  .delete {
+    cursor: pointer;
+    position: absolute;
+    bottom: 16px;
+    color: #aaa;
+    right: 0;
+    font-size: 1.4em;
   }
 </style>
